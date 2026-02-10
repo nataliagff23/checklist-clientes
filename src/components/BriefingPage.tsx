@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Client } from '../lib/supabase';
 import { BriefingForm } from './BriefingForm';
-import { Loader2 } from 'lucide-react';
 
 interface BriefingPageProps {
   clientId: string;

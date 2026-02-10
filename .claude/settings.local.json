@@ -4,7 +4,8 @@
       "Bash(curl:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
-      "WebFetch(domain:imperiansagency.com)"
+      "WebFetch(domain:imperiansagency.com)",
+      "Bash(npx vite build:*)"
     ]
   }
 }
