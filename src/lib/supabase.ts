@@ -35,6 +35,14 @@ export interface ChecklistTask {
   updated_at: string;
 }
 
+export interface ClientBriefing {
+  id: string;
+  client_id: string;
+  data: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
 export async function createClientWithTasks(
   clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>
 ) {

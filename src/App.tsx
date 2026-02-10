@@ -4,25 +4,35 @@ import type { Client } from './lib/supabase';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { ClientProfile } from './components/ClientProfile';
+import { BriefingPage } from './components/BriefingPage';
 import './index.css';
 
-function getClientIdFromHash(): string | null {
+function parseHash(): { type: 'client' | 'briefing' | null; id: string | null } {
   const hash = window.location.hash;
-  const match = hash.match(/^#\/client\/(.+)$/);
-  return match ? match[1] : null;
+  const clientMatch = hash.match(/^#\/client\/(.+)$/);
+  if (clientMatch) return { type: 'client', id: clientMatch[1] };
+
+  const briefingMatch = hash.match(/^#\/briefing\/(.+)$/);
+  if (briefingMatch) return { type: 'briefing', id: briefingMatch[1] };
+
+  return { type: null, id: null };
 }
 
 function App() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [briefingClientId, setBriefingClientId] = useState<string | null>(null);
   const [loadingClient, setLoadingClient] = useState(true);
 
   useEffect(() => {
-    const clientId = getClientIdFromHash();
-    if (clientId) {
+    const { type, id } = parseHash();
+    if (type === 'briefing' && id) {
+      setBriefingClientId(id);
+      setLoadingClient(false);
+    } else if (type === 'client' && id) {
       supabase
         .from('clients')
         .select('*')
-        .eq('id', clientId)
+        .eq('id', id)
         .single()
         .then(({ data }) => {
           if (data) setSelectedClient(data);
@@ -33,9 +43,13 @@ function App() {
     }
 
     function onHashChange() {
-      const id = getClientIdFromHash();
-      if (!id) {
+      const parsed = parseHash();
+      if (parsed.type === 'briefing' && parsed.id) {
+        setBriefingClientId(parsed.id);
         setSelectedClient(null);
+      } else if (!parsed.type) {
+        setSelectedClient(null);
+        setBriefingClientId(null);
       }
     }
     window.addEventListener('hashchange', onHashChange);
@@ -44,6 +58,7 @@ function App() {
 
   function selectClient(client: Client) {
     setSelectedClient(client);
+    setBriefingClientId(null);
     window.location.hash = `/client/${client.id}`;
   }
 
@@ -58,6 +73,11 @@ function App() {
         <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  // Página pública de briefing (sin dashboard ni header completo)
+  if (briefingClientId) {
+    return <BriefingPage clientId={briefingClientId} />;
   }
 
   return (

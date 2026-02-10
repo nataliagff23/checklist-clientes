@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Client, ChecklistTask } from '../lib/supabase';
+import { BriefingForm } from './BriefingForm';
 import {
   ArrowLeft,
   Building2,
@@ -12,6 +13,7 @@ import {
   AlertCircle,
   Link,
   Check,
+  Send,
 } from 'lucide-react';
 
 interface ClientProfileProps {
@@ -19,21 +21,30 @@ interface ClientProfileProps {
   onBack: () => void;
 }
 
-type ChecklistType = 'setup_tecnico' | 'onboarding';
+type TabType = 'setup_tecnico' | 'onboarding' | 'briefing';
 
 export function ClientProfile({ client, onBack }: ClientProfileProps) {
   const [tasks, setTasks] = useState<ChecklistTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ChecklistType>('setup_tecnico');
+  const [activeTab, setActiveTab] = useState<TabType>('setup_tecnico');
   const [updating, setUpdating] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedBriefing, setCopiedBriefing] = useState(false);
 
   function copyClientLink() {
     const url = `${window.location.origin}${window.location.pathname}#/client/${client.id}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function copyBriefingLink() {
+    const url = `${window.location.origin}${window.location.pathname}#/briefing/${client.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedBriefing(true);
+      setTimeout(() => setCopiedBriefing(false), 2000);
     });
   }
 
@@ -155,7 +166,7 @@ export function ClientProfile({ client, onBack }: ClientProfileProps) {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        {(['setup_tecnico', 'onboarding'] as ChecklistType[]).map((tab) => {
+        {(['setup_tecnico', 'onboarding'] as TabType[]).map((tab) => {
           const tabTasks = tasks.filter((t) => t.checklist_type === tab);
           const tabCompleted = tabTasks.filter((t) => t.is_completed).length;
           const tabProgress =
@@ -186,90 +197,127 @@ export function ClientProfile({ client, onBack }: ClientProfileProps) {
             </button>
           );
         })}
+        <button
+          onClick={() => setActiveTab('briefing')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'briefing'
+              ? 'bg-gold text-white shadow-md'
+              : 'bg-white border border-gray-200 text-gray-600 hover:border-gold hover:text-gold-dark'
+          }`}
+        >
+          Briefing
+        </button>
+        <button
+          onClick={copyBriefingLink}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ml-auto ${
+            copiedBriefing
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-gold/10 text-gold-dark border border-gold/30 hover:bg-gold/20'
+          }`}
+          title="Copiar link del briefing para enviar al cliente"
+        >
+          {copiedBriefing ? (
+            <>
+              <Check className="w-4 h-4" />
+              Link copiado
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              Enviar Briefing
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Progress bar */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">
-            Progreso: {completedCount} de {totalCount} tareas completadas
-          </span>
-          <span
-            className={`text-sm font-bold ${
-              progress === 100 ? 'text-green-600' : 'text-brand-700'
-            }`}
-          >
-            {progress}%
-          </span>
-        </div>
-        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              progress === 100
-                ? 'bg-green-500'
-                : 'bg-brand'
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Tasks */}
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-brand animate-spin" />
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <p className="text-red-700 text-sm">{error}</p>
-        </div>
+      {activeTab === 'briefing' ? (
+        <BriefingForm client={client} />
       ) : (
-        <div className="space-y-6">
-          {sections.map((section) => {
-            const sectionTasks = filteredTasks.filter((t) => t.section === section);
-            const sectionCompleted = sectionTasks.filter((t) => t.is_completed).length;
+        <>
+          {/* Progress bar */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                Progreso: {completedCount} de {totalCount} tareas completadas
+              </span>
+              <span
+                className={`text-sm font-bold ${
+                  progress === 100 ? 'text-green-600' : 'text-brand-700'
+                }`}
+              >
+                {progress}%
+              </span>
+            </div>
+            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  progress === 100
+                    ? 'bg-green-500'
+                    : 'bg-brand'
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
 
-            return (
-              <div key={section} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-text">{section}</h3>
-                  <span className="text-xs text-gray-500">
-                    {sectionCompleted}/{sectionTasks.length}
-                  </span>
-                </div>
-                <ul className="divide-y divide-gray-50">
-                  {sectionTasks.map((task) => (
-                    <li key={task.id}>
-                      <button
-                        onClick={() => toggleTask(task)}
-                        disabled={updating === task.id}
-                        className="w-full flex items-center gap-4 px-6 py-4 hover:bg-brand-50 transition-colors text-left disabled:opacity-60"
-                      >
-                        {updating === task.id ? (
-                          <Loader2 className="w-5 h-5 text-brand animate-spin flex-shrink-0" />
-                        ) : task.is_completed ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-gray-300 flex-shrink-0" />
-                        )}
-                        <span
-                          className={`text-sm ${
-                            task.is_completed
-                              ? 'line-through text-gray-400'
-                              : 'text-gray-700'
-                          }`}
-                        >
-                          {task.task_name}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+          {/* Tasks */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 text-brand animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {sections.map((section) => {
+                const sectionTasks = filteredTasks.filter((t) => t.section === section);
+                const sectionCompleted = sectionTasks.filter((t) => t.is_completed).length;
+
+                return (
+                  <div key={section} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                      <h3 className="font-semibold text-text">{section}</h3>
+                      <span className="text-xs text-gray-500">
+                        {sectionCompleted}/{sectionTasks.length}
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-gray-50">
+                      {sectionTasks.map((task) => (
+                        <li key={task.id}>
+                          <button
+                            onClick={() => toggleTask(task)}
+                            disabled={updating === task.id}
+                            className="w-full flex items-center gap-4 px-6 py-4 hover:bg-brand-50 transition-colors text-left disabled:opacity-60"
+                          >
+                            {updating === task.id ? (
+                              <Loader2 className="w-5 h-5 text-brand animate-spin flex-shrink-0" />
+                            ) : task.is_completed ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            ) : (
+                              <Circle className="w-5 h-5 text-gray-300 flex-shrink-0" />
+                            )}
+                            <span
+                              className={`text-sm ${
+                                task.is_completed
+                                  ? 'line-through text-gray-400'
+                                  : 'text-gray-700'
+                              }`}
+                            >
+                              {task.task_name}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
